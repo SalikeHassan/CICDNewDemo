@@ -38,8 +38,7 @@ stages:
       inputs:
         targetType: 'inline'
         script: |
-          echo $(branch)
-          git diff --quiet master origin/$(branch) || echo "##vso[task.setvariable variable=isDiff;isOutput=true]true"
+          git diff --quiet master $(branch) || echo "##vso[task.setvariable variable=isDiff;isOutput=true]true"
 
     - script: echo $(isDiff)
       displayName: 'Print isDiff'
