@@ -19,8 +19,13 @@ steps:
     version: '3.1.x'
     
 - script: |
-    git checkout master
-    git pull
+    git fetch origin
+    if git branch --list | grep -q "master"; then 
+      git checkout master
+    else
+      git checkout -b master origin/master
+    fi
+    git pull origin master
     git checkout -
   displayName: 'Update master branch'
 
