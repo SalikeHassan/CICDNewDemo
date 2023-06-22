@@ -33,11 +33,14 @@ stages:
           then
               echo "##vso[task.setvariable variable=isDiff;isOutput=true]true"
               echo "There are differences between origin/master and origin/$BRANCH"
-              echo "Diff variable : $(isDiff)"
+              ISDIFF=true
           else
               echo "##vso[task.setvariable variable=isDiff;isOutput=true]false"
               echo "There are no differences between origin/master and origin/$BRANCH"
+              ISDIFF=false
           fi
+          
+          echo "Diff variable : $ISDIFF"
 
     - script: echo $(isDiff)
       displayName: 'Print isDiff'
