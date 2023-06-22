@@ -2,6 +2,7 @@ stages:
 - stage: Build
   jobs:
   - job: UpdateBranches
+    displayName: 'Update dev1 and master branches'
     pool:
       vmImage: 'ubuntu-latest'
     variables:
@@ -23,8 +24,14 @@ stages:
         git pull origin dev1
         git checkout master
         git pull origin master
-      displayName: 'Update dev1 and master branches'
+      displayName: 'Update branches'
 
+  - job: DetectChanges
+    displayName: 'Detect changes in the solution files between dev1 and master branches'
+    dependsOn: UpdateBranches
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
     - script: |
         if git diff $(git merge-base master dev1)..dev1 --name-only | grep -qE '\.cs$|$(solution)'; then   
           echo "Updates to the project found"
@@ -34,28 +41,38 @@ stages:
           echo "No Updates to the project were found"
           echo '##vso[task.setvariable variable=rebuild;isOutput=true]false'
         fi
-      displayName: 'Detect changes in the solution files between dev1 and master branches'
-      
+      displayName: 'Detect changes'
+
+  - job: BuildAndPublish
+    displayName: 'Build and Publish'
+    dependsOn: DetectChanges
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
     - task: DotNetCoreCLI@2
+      displayName: 'Restore'
       inputs:
         command: 'restore'
         projects: '**/*.csproj'
-      condition: eq(variables.rebuild, 'true')
+      condition: eq(dependencies.DetectChanges.outputs['DetectChanges.rebuild'], 'true')
 
     - task: DotNetCoreCLI@2
+      displayName: 'Build'
       inputs:
         command: 'build'
         projects: '**/*.csproj'
         arguments: '--configuration $(buildConfiguration)'
-      condition: eq(variables.rebuild, 'true')
+      condition: eq(dependencies.DetectChanges.outputs['DetectChanges.rebuild'], 'true')
 
     - task: DotNetCoreCLI@2
+      displayName: 'Publish'
       inputs:
         command: 'publish'
-        publishWebProjects: True
+        publishWebProjects: true
         arguments: '--configuration $(buildConfiguration) --output $(build.artifactstagingdirectory)'
-        zipAfterPublish: True
-      condition: eq(variables.rebuild, 'true')
+        zipAfterPublish: true
+      condition: eq(dependencies.DetectChanges.outputs['DetectChanges.rebuild'], 'true')
 
     - task: PublishBuildArtifacts@1
-      condition: eq(variables.rebuild, 'true')
+      displayName: 'Publish Build Artifacts'
+      condition: eq(dependencies.DetectChanges.outputs['DetectChanges.rebuild'], 'true')
