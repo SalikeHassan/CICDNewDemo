@@ -28,12 +28,12 @@ stages:
         git fetch origin
         if git diff origin/master... --name-only | grep -q  "$(solution)"; then   
           echo "Updates to the project found"
-          echo '##vso[task.setvariable variable=rebuild;isOutput=true]true'
-          echo "Rebuild value: $rebuild"
+          echo 'rebuild=true' >> $(setImageVars.path)
         else
           echo "No Updates to the project were found"
-          echo '##vso[task.setvariable variable=rebuild;isOutput=true]false'
+          echo 'rebuild=false' >> $(setImageVars.path)
         fi
+        echo "##vso[task.setvariable variable=rebuild;isOutput=true]$(cat $(setImageVars.path))"
       displayName: 'Detect changes'
 
   - job: BuildAndPublish
@@ -41,13 +41,15 @@ stages:
     dependsOn: DetectChanges
     pool:
       vmImage: 'ubuntu-latest'
+    variables:
+      rebuild: $[ dependencies.DetectChanges.outputs['setImageVars.rebuild'] ]
     steps:
     - task: DotNetCoreCLI@2
       displayName: 'Restore'
       inputs:
         command: 'restore'
         projects: '**/*.csproj'
-      condition: eq(dependencies.DetectChanges.outputs['setImageVars.rebuild'], 'true')
+      condition: eq(variables.rebuild, 'true')
 
     - task: DotNetCoreCLI@2
       displayName: 'Build'
@@ -55,7 +57,7 @@ stages:
         command: 'build'
         projects: '**/*.csproj'
         arguments: '--configuration $(buildConfiguration)'
-      condition: eq(dependencies.DetectChanges.outputs['setImageVars.rebuild'], 'true')
+      condition: eq(variables.rebuild, 'true')
 
     - task: DotNetCoreCLI@2
       displayName: 'Publish'
@@ -64,8 +66,8 @@ stages:
         publishWebProjects: true
         arguments: '--configuration $(buildConfiguration) --output $(build.artifactstagingdirectory)'
         zipAfterPublish: true
-      condition: eq(dependencies.DetectChanges.outputs['setImageVars.rebuild'], 'true')
+      condition: eq(variables.rebuild, 'true')
 
     - task: PublishBuildArtifacts@1
       displayName: 'Publish Build Artifacts'
-      condition: eq(dependencies.DetectChanges.outputs['setImageVars.rebuild'], 'true')
+      condition: eq(variables.rebuild, 'true')
