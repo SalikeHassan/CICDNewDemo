@@ -1,7 +1,7 @@
 stages:
 - stage: Build
   jobs:
-  - job: UpdateMaster
+  - job: UpdateBranches
     pool:
       vmImage: 'ubuntu-latest'
     variables:
@@ -19,24 +19,21 @@ stages:
         
     - script: |
         git fetch origin
-        if git branch --list | grep -q "master"; then 
-          git checkout master
-        else
-          git checkout -b master origin/master
-        fi
+        git checkout dev1
+        git pull origin dev1
+        git checkout master
         git pull origin master
-        git checkout -
-      displayName: 'Update master branch'
+      displayName: 'Update dev1 and master branches'
 
     - script: |
-        if git diff $(git merge-base master HEAD)..HEAD --name-only | grep -q "$(solution)"; then 
+        if git diff $(git merge-base master dev1)..dev1 --name-only | grep -qE '\.cs$|$(solution)'; then   
           echo "Updates to the project found"
           echo '##vso[task.setvariable variable=rebuild;isOutput=true]true'
         else
           echo "No Updates to the project were found"
           echo '##vso[task.setvariable variable=rebuild;isOutput=true]false'
         fi
-      displayName: 'Detect changes in the project'
+      displayName: 'Detect changes in the solution files between dev1 and master branches'
       
     - task: DotNetCoreCLI@2
       inputs:
