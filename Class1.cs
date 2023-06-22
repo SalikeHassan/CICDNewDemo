@@ -6,5 +6,10 @@
         {
             return;
         }
+
+        public void NewMethod2()
+        {
+            return;
+        }
     }
 }

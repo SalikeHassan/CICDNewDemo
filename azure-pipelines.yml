@@ -29,6 +29,7 @@ stages:
         if git diff $(git merge-base master dev1)..dev1 --name-only | grep -qE '\.cs$|$(solution)'; then   
           echo "Updates to the project found"
           echo '##vso[task.setvariable variable=rebuild;isOutput=true]true'
+          echo "Rebuild value: $rebuild"
         else
           echo "No Updates to the project were found"
           echo '##vso[task.setvariable variable=rebuild;isOutput=true]false'
